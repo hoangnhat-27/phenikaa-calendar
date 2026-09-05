@@ -67,6 +67,16 @@
   .warn{border-left:4px solid var(--amber);padding-left:14px}
   .pill{display:inline-block;background:var(--amber);color:#fff;font-size:11px;
     font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:middle}
+  .iab{background:#7f1d1d;color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:20px}
+  .iab b.t{display:block;font-size:15px;margin-bottom:6px}
+  .iab p{margin:0 0 10px;font-size:13.5px;line-height:1.55}
+  .ico{width:1.15em;height:1.15em;vertical-align:-.25em}
+  .iabrow{display:flex;gap:8px;align-items:stretch}
+  .iabbtn{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;
+    background:#fff;color:#7f1d1d;border:none;border-radius:8px;text-align:center;
+    padding:11px 12px;font-weight:700;font-size:14px;cursor:pointer;text-decoration:none;
+    min-height:44px;line-height:1.35}
+  .iabbtn[hidden]{display:none}
   footer{color:var(--muted);font-size:12px;text-align:center;margin-top:30px}
   a{color:var(--blue)}
 </style>
@@ -74,6 +84,15 @@
 </head>
 <body>
 <div class="wrap">
+
+  <div class="iab" id="iabWarn" hidden>
+    <b class="t" id="iabTitle"></b>
+    <p id="iabMsg"></p>
+    <div class="iabrow">
+      <a class="iabbtn" id="iabOpen" href="#" hidden></a>
+      <button class="iabbtn" id="iabCopy">🔗 Sao chép link</button>
+    </div>
+  </div>
 
   <main>
   <h1>📅 Phenikaa Calendar — Lịch học &amp; lịch thi</h1>
@@ -88,8 +107,11 @@
     </div>
     <div id="mb-only" hidden>
       <ol>
-        <li>Bấm <b>📋 Sao chép mã</b>.</li>
-        <li>Tạo một dấu trang mới → <b>Sửa</b> → dán mã vào ô địa chỉ → đặt tên “Phenikaa Calendar”.</li>
+        <li>Bấm <b>📋 Sao chép mã</b> ở dưới.</li>
+        <li class="os-ios"><b>Đánh dấu chính trang này</b>: bấm biểu tượng <svg class="ico" role="img" aria-label="chia sẻ" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> → <b>Thêm dấu trang</b> → <b>Lưu</b>.</li>
+        <li class="os-android"><b>Đánh dấu chính trang này</b>: bấm <b>⋮</b> → biểu tượng <b>☆</b> ở đầu menu.</li>
+        <li class="os-ios">Mở <b>📖</b> → thẻ <b>Dấu trang</b> → <b>Sửa</b> → chạm vào dấu trang vừa tạo → xoá địa chỉ cũ rồi <b>dán mã</b> vào → đặt tên “Phenikaa Calendar”.</li>
+        <li class="os-android">Bấm <b>⋮</b> → <b>Dấu trang</b> → giữ vào mục vừa tạo → <b>✏️</b> → xoá địa chỉ cũ rồi <b>dán mã</b> vào → đặt tên “Phenikaa Calendar”.</li>
       </ol>
       <button class="copybtn" id="copyBtn">📋 Sao chép mã</button>
       <textarea id="bmText" readonly spellcheck="false"></textarea>
@@ -103,6 +125,8 @@
       <li>Bấm dấu trang <b>📅</b> → <b>📆 Xem thời khóa biểu</b>. Công cụ lấy cả kỳ (gọi thẳng API của trường), rồi hiện cửa sổ lịch <b>ngay trong trang</b> (điện thoại: mở trang lịch offline).</li>
       <li>Trong cửa sổ lịch: xem <b>Tuần</b> / <b>Lịch thi</b>, chọn phạm vi rồi <b>📥 Đưa vào Google Calendar</b>, <b>⬇️ Tải .ics</b>, hoặc <b>💾 Lưu offline</b>.</li>
     </ol>
+    <p class="hint mb-tip os-ios">📱 Gọi công cụ ra: mở <b>📖</b> rồi chạm vào dấu trang <b>Phenikaa Calendar</b>.</p>
+    <p class="hint mb-tip os-android">📱 Chrome trên Android <b>không có thanh dấu trang</b>: gõ <code>Phenikaa Calendar</code> vào thanh địa chỉ rồi chạm vào gợi ý hiện ra.</p>
   </div>
 
   <div class="card">
@@ -151,9 +175,96 @@ function buildBookmarklet() {
     return "javascript:" + encodeURIComponent(loader);
 }
 
+const OS = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "ios" : /Android/i.test(navigator.userAgent) ? "android" : "";
+
+const SHARE_ICO = "<svg class=\"ico\" role=\"img\" aria-label=\"chia sẻ\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7\"/><polyline points=\"16 6 12 2 8 6\"/><line x1=\"12\" y1=\"2\" x2=\"12\" y2=\"15\"/></svg>";
+
+const IAB_APPS = [
+    [/FBAN|FBAV|FB_IAB|FBIOS/i, "ứng dụng Facebook"],
+    [/Messenger/i, "Messenger"],
+    [/Instagram/i, "Instagram"],
+    [/Zalo/i, "Zalo"],
+    [/GSA\//i, "ứng dụng Google"],
+    [/Line\//i, "LINE"],
+    [/TikTok|BytedanceWebview/i, "TikTok"],
+    [/; wv\)/i, "một ứng dụng khác"]
+];
+
+function copyText(t) {
+    let ok = false;
+    try {
+        const ta = document.createElement("textarea");
+        ta.value = t;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+    } catch (error_) {
+        ok = false;
+    }
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(t).catch(function() {});
+        ok = true;
+    }
+    return ok;
+}
+
+(function() {
+    const ua = navigator.userAgent || "";
+    let app = null;
+    for (const row of IAB_APPS) {
+        if (row[0].test(ua)) { app = row[1]; break; }
+    }
+    if (!app) return;
+    document.getElementById("iabTitle").textContent = "⚠️ Bạn đang mở trong " + app;
+    const msg = document.getElementById("iabMsg");
+    const open = document.getElementById("iabOpen");
+    if (OS === "ios") {
+        msg.innerHTML = "Trình duyệt bên trong " + app + " <b>không có chức năng dấu trang</b> nên không cài được công cụ. " +
+            "Bấm nút dưới để mở Safari. Nếu không có gì xảy ra, bấm biểu tượng " + SHARE_ICO + " → <b>Mở trong Safari</b>.";
+        open.setAttribute("href", "x-safari-https://" + location.host + location.pathname);
+        open.textContent = "🧭 Mở Safari";
+        open.hidden = false;
+    } else if (OS === "android") {
+        msg.innerHTML = "Trình duyệt bên trong " + app + " <b>không tạo được dấu trang</b> nên không cài được công cụ. " +
+            "Bấm nút dưới để mở Chrome. Nếu không có gì xảy ra, bấm <b>⋮</b> → <b>Mở trong Chrome</b>.";
+        open.setAttribute("href", "intent://" + location.host + location.pathname + "#Intent;scheme=https;package=com.android.chrome;end");
+        open.textContent = "🚀 Mở Chrome";
+        open.hidden = false;
+    } else {
+        msg.innerHTML = "Trình duyệt bên trong " + app + " <b>không tạo được dấu trang</b> nên không cài được công cụ. " +
+            "Hãy mở trang này bằng trình duyệt thật (Safari hoặc Chrome) rồi cài từ đó.";
+    }
+    document.getElementById("iabCopy").addEventListener("click", function(e) {
+        const btn = e.currentTarget;
+        const ok = copyText(location.href);
+        btn.textContent = ok ? "✅ Đã sao chép" : "Hãy tự sao chép ở thanh địa chỉ";
+        setTimeout(function() {
+            btn.textContent = "🔗 Sao chép link";
+        }, 2e3);
+    });
+    document.getElementById("iabWarn").hidden = false;
+})();
+
 const isMobile = matchMedia("(pointer:coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 document.getElementById("pc-only").hidden = isMobile;
 document.getElementById("mb-only").hidden = !isMobile;
+
+(function() {
+    if (OS) {
+        document.querySelectorAll(OS === "ios" ? ".os-android" : ".os-ios").forEach(function(el) {
+            el.hidden = true;
+        });
+    }
+    if (!isMobile) {
+        document.querySelectorAll(".mb-tip").forEach(function(el) {
+            el.hidden = true;
+        });
+    }
+})();
 
 (function() {
     const href = buildBookmarklet();
