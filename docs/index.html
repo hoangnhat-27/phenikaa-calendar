@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phenikaa Calendar — Xuất lịch học & thi Phenikaa ra .ics</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#475569;
+    --blue:#2563eb; --navy:#1e3a8a; --green:#059669; --amber:#d97706;
+    --border:#e2e8f0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#0b1220;--card:#131c2e;--ink:#e5edf7;--muted:#94a3b8;--border:#23324a;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 64px}
+  h1{font-size:26px;margin:0 0 4px;color:var(--navy)}
+  @media (prefers-color-scheme: dark){h1{color:#93b4ff}}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:20px;margin-bottom:20px}
+  .card h2{margin:0 0 10px;font-size:17px}
+  .bm{display:inline-block;background:var(--green);color:#fff;text-decoration:none;
+    font-weight:700;padding:12px 20px;border-radius:10px;font-size:15px;cursor:grab}
+  .bm:active{cursor:grabbing}
+  .hint{font-size:13px;color:var(--muted);margin-top:10px}
+  ol,ul{margin:8px 0 0;padding-left:22px}
+  li{margin:6px 0}
+  code{background:rgba(120,140,170,.18);padding:1px 6px;border-radius:5px;font-size:13px}
+  .copybtn{display:block;margin-top:6px;background:var(--blue);color:#fff;border:none;border-radius:8px;
+    padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px}
+  textarea{width:100%;height:80px;margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;border:1px solid var(--border);border-radius:8px;padding:8px;
+    background:var(--bg);color:var(--ink);resize:vertical}
+  .warn{border-left:4px solid var(--amber);padding-left:14px}
+  .pill{display:inline-block;background:var(--amber);color:#fff;font-size:11px;
+    font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:middle}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:30px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>📅 Phenikaa Calendar</h1>
+  <p class="sub">Xuất <b>Lịch học</b> &amp; <b>Lịch thi</b> trên cổng QLDT Phenikaa thành file <code>.ics</code> để nhập vào Google Calendar / Lịch iPhone / Outlook. Không cần cài đặt, chạy trên cả máy tính lẫn điện thoại.</p>
+
+  <div class="card">
+    <h2>1. Cài công cụ</h2>
+    <p class="hint">✅ Cài <b>1 lần duy nhất</b>. Về sau công cụ có thêm tính năng, dấu trang này <b>tự cập nhật</b> — không cần cài hay sửa lại.</p>
+    <div id="pc-only">
+      <p>Kéo nút này lên thanh dấu trang (nhấn <code>Ctrl</code>+<code>Shift</code>+<code>B</code> để hiện thanh):</p>
+      <a class="bm" id="bmLink" href="#">📅 Phenikaa Calendar</a>
+    </div>
+    <div id="mb-only" hidden>
+      <ol>
+        <li>Bấm <b>📋 Sao chép mã</b>.</li>
+        <li>Tạo một dấu trang mới → <b>Sửa</b> → dán mã vào ô địa chỉ → đặt tên “Phenikaa Calendar”.</li>
+      </ol>
+      <button class="copybtn" id="copyBtn">📋 Sao chép mã</button>
+      <textarea id="bmText" readonly spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Dùng</h2>
+    <ol>
+      <li>Đăng nhập QLDT, vào <b>Cổng của bạn</b> (trang nào trong đó cũng được — không cần mở Lịch học).</li>
+      <li>Bấm dấu trang <b>📅</b> → <b>📆 Xem thời khóa biểu</b>. Công cụ lấy cả kỳ (gọi thẳng API của trường), rồi hiện cửa sổ lịch <b>ngay trong trang</b> (điện thoại: mở trang lịch offline).</li>
+      <li>Trong cửa sổ lịch: xem <b>Tuần</b> / <b>Lịch thi</b>, chọn phạm vi rồi <b>📥 Đưa vào Google Calendar</b>, <b>⬇️ Tải .ics</b>, hoặc <b>💾 Lưu offline</b>.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>📴 Xem offline</h2>
+    <ul>
+      <li><b>Cách gọn:</b> <b>📥 Đưa vào Google Calendar</b> (hoặc <b>⬇️ .ics</b> cho Apple/Outlook) → xem trong app Lịch của máy. Mọi email, không cần đăng nhập.</li>
+      <li><b>App riêng:</b> bấm <b>💾 Lưu offline</b> → mở <a href="app.html" target="_blank" rel="noreferrer">Thời khóa biểu Phenikaa</a> → “Thêm vào màn hình chính”.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Câu hỏi thường gặp</h2>
+    <ul>
+      <li><b>Có lộ mật khẩu không?</b> Không. Công cụ chỉ đọc dữ liệu đang hiển thị trên trang bạn <i>đã tự đăng nhập</i>; không lưu, không gửi mật khẩu đi đâu.</li>
+      <li><b>Xem được lịch người khác không?</b> Không — chỉ lấy lịch của chính tài khoản đang đăng nhập trên máy bạn.</li>
+      <li><b>Bấm không thấy gì?</b> Hãy chắc chắn đang ở trang Lịch học/Lịch thi đã đăng nhập; bảng chỉ đọc được khi lịch đã hiện.</li>
+    </ul>
+  </div>
+
+  <footer>Phenikaa Calendar — công cụ không chính thức, không liên kết với Trường Đại học Phenikaa.</footer>
+</div>
+
+<script>
+
+const BASE = new URL(".", location.href).href;
+
+const CORE_URL = BASE + "phenikaa-core.js";
+
+const SYNC_URL = BASE + "sync.html";
+
+const APP_URL = BASE + "app.html";
+
+function buildBookmarklet() {
+    const loader = "(function(){" +
+        "window.PKA_SYNC_URL=" + JSON.stringify(SYNC_URL) + ";" +
+        "window.PKA_APP_URL=" + JSON.stringify(APP_URL) + ";" +
+        "function b(){try{window.PKACAL&&window.PKACAL.openPanel();}catch(e){alert('Phenikaa: '+e.message);}}" +
+        "if(window.PKACAL){b();return;}" +
+        "var u=" + JSON.stringify(CORE_URL) + "+'?t='+Date.now();" +
+        "var s=document.createElement('script');s.src=u;s.onload=b;" +
+        "s.onerror=function(){fetch(u).then(function(r){return r.text();}).then(function(t){(0,eval)(t);b();}).catch(function(){alert('Phenikaa: khong tai duoc cong cu. Kiem tra mang roi thu lai.');});};" +
+        "(document.head||document.documentElement).appendChild(s);" +
+        "})();";
+    return "javascript:" + encodeURIComponent(loader);
+}
+
+const isMobile = matchMedia("(pointer:coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+document.getElementById("pc-only").hidden = isMobile;
+document.getElementById("mb-only").hidden = !isMobile;
+
+(function() {
+    const href = buildBookmarklet();
+    document.getElementById("bmLink").setAttribute("href", href);
+    document.getElementById("bmText").value = href;
+})();
+
+document.getElementById("copyBtn").addEventListener("click", function(e) {
+    const btn = e.currentTarget;
+    const ta = document.getElementById("bmText");
+    ta.select();
+    let ok = false;
+    try {
+        ok = document.execCommand("copy");
+    } catch (err) {
+        ok = false;
+    }
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(ta.value).catch(function() {});
+        ok = true;
+    }
+    btn.textContent = ok ? "✅ Đã sao chép!" : "Hãy chọn & sao chép thủ công";
+    setTimeout(function() {
+        btn.textContent = "📋 Sao chép mã";
+    }, 2e3);
+});
+</script>
+</body>
+</html>

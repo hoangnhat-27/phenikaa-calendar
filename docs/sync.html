@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đồng bộ Google Calendar — Phenikaa</title>
+<style>
+  :root{--bg:#f1f5f9;--card:#fff;--ink:#0f172a;--muted:#475569;--line:#e2e8f0;
+    --blue:#2563eb;--navy:#1e3a8a;--green:#059669;--amber:#d97706;--red:#dc2626}
+  html[data-pka-theme="dark"]{--bg:#0b1220;--card:#131c2e;--ink:#e5edf7;--muted:#94a3b8;--line:#23324a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto;padding:22px 14px 60px}
+  h1{font-size:21px;color:var(--navy);margin:0 0 2px}
+  @media (prefers-color-scheme:dark){h1{color:#93b4ff}}
+  .muted{color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  button{border:none;border-radius:10px;font-weight:700;cursor:pointer;padding:12px 18px;font-size:15px;color:#fff;min-height:46px}
+  button:disabled{opacity:.5;cursor:default}
+  .g{background:var(--blue)} .ics{background:var(--green)}
+  @media (max-width:560px){.row button{flex:1 1 100%}}
+  .bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:14px 0 6px}
+  .bar>i{display:block;height:100%;width:0;background:var(--green);transition:width .2s}
+  ul.log{margin:8px 0 0;padding-left:18px;font-size:12.5px;max-height:240px;overflow:auto}
+  ul.log li{margin:2px 0}.ok{color:var(--green)}.err{color:var(--red)}
+  ul.prev{margin:8px 0 0;padding-left:18px;font-size:13px;max-height:220px;overflow:auto}
+  code{background:rgba(120,140,170,.18);padding:1px 6px;border-radius:5px;font-size:12px}
+  .warn{border-left:4px solid var(--amber);padding-left:12px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>☁️ Đồng bộ Google Calendar</h1>
+  <p class="muted">Nhận lịch từ trình xem trên trang QLDT và chèn thẳng vào Google Calendar. Chèn lại sẽ <b>cập nhật</b> (theo UID), không nhân đôi.</p>
+
+  <div class="card">
+    <b id="count">Đang chờ dữ liệu từ trình xem…</b>
+    <ul class="prev" id="preview"></ul>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="g" id="btnSync">🔑 Đăng nhập Google &amp; Đồng bộ</button>
+      <button class="ics" id="btnIcs">⬇️ Tải .ics</button>
+    </div>
+    <div class="bar" id="barWrap" hidden><i id="bar"></i></div>
+    <p class="muted" id="status"></p>
+    <ul class="log" id="log"></ul>
+    <div class="warn" id="cfgWarn" hidden style="margin-top:10px">
+      <b>Chưa cấu hình Google Client ID.</b> Nút đồng bộ thật chưa chạy tới khi bạn đặt
+      <code>CLIENT_ID</code> trong <code>sync.html</code> (hoặc mở kèm <code>?client_id=...</code>).
+      Vẫn dùng được <b>Tải .ics</b>. Xem README mục "Cấu hình Google".
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="phenikaa-config.js?v=7"></script>
+<script src="phenikaa-core.js?v=7"></script>
+<script>
+
+(function() {
+    "use strict";
+    const P = window.PKACAL;
+    P.applyTheme();
+    const $ = function(id) {
+        return document.getElementById(id);
+    };
+    function status(m) {
+        $("status").textContent = m || "";
+    }
+    function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"]/g, function(c) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;"
+            }[c];
+        });
+    }
+    function logLine(html, cls) {
+        const li = document.createElement("li");
+        li.innerHTML = html;
+        if (cls) li.className = cls;
+        $("log").appendChild(li);
+    }
+    let CLIENT_ID = window.PKA_GOOGLE_CLIENT_ID || "PUT-YOUR-CLIENT-ID.apps.googleusercontent.com";
+    const qs = new URLSearchParams(location.search);
+    if (qs.get("client_id")) CLIENT_ID = qs.get("client_id");
+    const configured = !CLIENT_ID.includes("PUT-YOUR-CLIENT-ID");
+    if (!configured) $("cfgWarn").hidden = false;
+    const SCOPE = "https://www.googleapis.com/auth/calendar.events";
+    const IMPORT_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events/import";
+    let events = [];
+    function onData() {
+        $("count").textContent = "Sẽ đồng bộ " + events.length + " sự kiện:";
+        const ul = $("preview");
+        ul.innerHTML = "";
+        events.slice(0, 300).forEach(function(ev) {
+            const when = ev.isAllDay ? "cả ngày " + ev.startDate : ev.start || "";
+            const li = document.createElement("li");
+            li.textContent = ev.title + " — " + when + (ev.location ? " @ " + ev.location : "");
+            ul.appendChild(li);
+        });
+    }
+    window.addEventListener("message", function(e) {
+        if (window.opener && e.source !== window.opener) return;
+        const d = e.data;
+        if (d && d.type === "pka-events" && Array.isArray(d.events)) {
+            events = d.events;
+            try {
+                e.source.postMessage("pka-ack", e.origin || "*");
+            } catch (error_) {}
+            onData();
+        }
+    });
+    try {
+        if (window.opener) window.opener.postMessage("pka-ready", "*");
+    } catch (error_) {}
+    (function() {
+        const m = location.hash.match(/[#&]e=([^&]+)/);
+        if (m) {
+            try {
+                events = JSON.parse(P.b64urlDecode(m[1]));
+                onData();
+            } catch (error_) {}
+        }
+    })();
+    setTimeout(function() {
+        if (events.length) return;
+        $("count").textContent = window.opener ? "⚠️ Chưa nhận được dữ liệu. Quay lại tab lịch QLDT và bấm ☁️ Đồng bộ Google một lần nữa." : "ℹ️ Hãy mở trang này bằng nút ☁️ Đồng bộ Google trong cửa sổ lịch (trên QLDT) — đừng mở trực tiếp.";
+    }, 4e3);
+    $("btnIcs").addEventListener("click", function() {
+        if (!events.length) {
+            status("Chưa có dữ liệu.");
+            return;
+        }
+        P.downloadIcs(events, "Phenikaa_ThoiKhoaBieu.ics");
+        status("Đã tải .ics (" + events.length + " sự kiện).");
+    });
+    let tokenClient = null;
+    $("btnSync").addEventListener("click", function() {
+        if (!events.length) {
+            status("Chưa có dữ liệu để đồng bộ.");
+            return;
+        }
+        if (!configured) {
+            status("Chưa đặt Client ID — chỉ Tải .ics được.");
+            $("cfgWarn").hidden = false;
+            return;
+        }
+        if (!window.google || !google.accounts || !google.accounts.oauth2) {
+            status("Chưa nạp được Google Identity Services (mạng bị chặn?).");
+            return;
+        }
+        if (!tokenClient) {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPE,
+                callback: function(resp) {
+                    if (resp && resp.access_token) syncAll(resp.access_token); else status("Không lấy được quyền.");
+                }
+            });
+        }
+        status("Đang mở đăng nhập Google…");
+        tokenClient.requestAccessToken({
+            prompt: ""
+        });
+    });
+    async function importOne(token, r) {
+        const res = await fetch(IMPORT_URL, {
+            method: "POST",
+            headers: {
+                Authorization: "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(r)
+        });
+        if (!res.ok) throw new Error(res.status + " " + (await res.text()).slice(0, 160));
+        return res.json();
+    }
+    async function syncAll(token) {
+        const rs = events.map(P.toGoogleEvent);
+        $("btnSync").disabled = $("btnIcs").disabled = true;
+        $("log").innerHTML = "";
+        $("barWrap").hidden = false;
+        $("bar").style.width = "0%";
+        let done = 0;
+        let okN = 0;
+        let errN = 0;
+        let i = 0;
+        const CONC = 4;
+        async function worker() {
+            while (i < rs.length) {
+                const r = rs[i++];
+                try {
+                    await importOne(token, r);
+                    okN++;
+                    logLine("✔ " + esc(r.summary), "ok");
+                } catch (e) {
+                    errN++;
+                    logLine("✗ " + esc(r.summary) + " — " + esc(e.message), "err");
+                }
+                done++;
+                $("bar").style.width = Math.round(done / rs.length * 100) + "%";
+                status("Đang đồng bộ… " + done + "/" + rs.length + " (OK " + okN + ", lỗi " + errN + ")");
+            }
+        }
+        const ws = [];
+        for (let w = 0; w < Math.min(CONC, rs.length); w++) ws.push(worker());
+        await Promise.all(ws);
+        status("Hoàn tất: " + okN + " sự kiện vào Google Calendar" + (errN ? ", " + errN + " lỗi." : "."));
+        $("btnSync").disabled = $("btnIcs").disabled = false;
+    }
+})();
+</script>
+</body>
+</html>

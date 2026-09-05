@@ -1,0 +1,14 @@
+{
+  "name": "Thời khóa biểu Phenikaa",
+  "short_name": "TKB Phenikaa",
+  "description": "Xem thời khóa biểu & lịch thi Phenikaa offline.",
+  "start_url": "app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

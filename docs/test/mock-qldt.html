@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOCK QLDT — sân test Phenikaa Calendar</title>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;padding:18px;background:#eef2f7;color:#0f172a}
+  h1{font-size:18px;color:#b91c1c}
+  .banner{background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px}
+  .tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .tools button{padding:8px 12px;border:none;border-radius:7px;background:#1e3a8a;color:#fff;font-weight:600;cursor:pointer}
+  .tools button.alt{background:#b45309}
+  h2{font-size:15px;margin:18px 0 8px}
+  
+  .calendar-week-table .date-body{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .day-of-week{background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px;min-height:60px}
+  .day-of-week>b{font-size:12px;color:#475569}
+  .task{margin-top:6px;padding:6px;border-left:3px solid #2563eb;background:#f1f5f9;border-radius:4px}
+  .task .title{font-weight:700;font-size:13px}
+  .task-date{font-size:12px;color:#334155}
+  .task-description{font-size:11px;color:#64748b;white-space:pre-line;margin-top:2px}
+  
+  table{border-collapse:collapse;width:100%;background:#fff;font-size:12.5px}
+  th,td{border:1px solid #cbd5e1;padding:5px 7px;text-align:left}
+  th{background:#e2e8f0}
+</style>
+</head>
+<body>
+  <h1>⚠️ Trang QLDT GIẢ — chỉ để test Phenikaa Calendar</h1>
+  <div class="banner">Đây KHÔNG phải cổng trường. Nó tái tạo đúng các selector DOM mà công cụ đọc, với dữ liệu mẫu, để bạn thử bookmarklet/userscript ngay trên máy.</div>
+
+  <div class="tools">
+    <button onclick="window.PKACAL&&PKACAL.openPanel()">📅 Mở panel Phenikaa (giả bookmarklet)</button>
+    <button class="alt" onclick="mutateSchedule()">🔁 Giả lập lịch THAY ĐỔI (test auto-check)</button>
+    <button class="alt" onclick="localStorage.clear();location.reload()">🧹 Xóa snapshot &amp; tải lại</button>
+  </div>
+
+  <h2>Lịch tuần</h2>
+  <div class="calendar-week-table">
+    <div class="date-body" id="grid">
+      <div class="day-of-week" id="row08092026"><b>Thứ 2 — 08/09/2026</b>
+        <div class="task" id="tk1">
+          <div class="task-header"><span class="title">Giải tích 1</span></div>
+          <div class="task-date">07:00 - 09:30</div>
+          <div class="task-description">Nhóm: 01
+P.502-A1
+GV: Nguyễn Văn A
+👍 thumbs-up</div>
+        </div>
+      </div>
+      <div class="day-of-week" id="row09092026"><b>Thứ 3 — 09/09/2026</b>
+        <div class="task" id="tk2">
+          <div class="task-header"><span class="title">Lập trình hướng đối tượng</span></div>
+          <div class="task-date">13h - 15h30</div>
+          <div class="task-description">Nhóm: 03
+P.301-A2
+GV: Trần Thị B
+👍 thumbs-up</div>
+        </div>
+      </div>
+      <div class="day-of-week" id="row11092026"><b>Thứ 5 — 11/09/2026</b>
+        <div class="task" id="tk3">
+          <div class="task-header"><span class="title">Tiếng Anh 2, học phần A;B</span></div>
+          <div class="task-date">18:00 - 20:40</div>
+          <div class="task-description">Nhóm: 07
+P.Lab-CNTT
+GV: Lê C
+👍 thumbs-up</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Lịch thi (modal ở tab Lịch học) — #tblLichThi</h2>
+  <table id="tblLichThi"><thead><tr><th>STT</th><th>Hình thức</th><th>Ngày thi</th><th>Giờ thi</th><th>Phòng</th><th>Tên học phần</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Tự luận</td><td>15/12/2026</td><td>09:30 - 11:00</td><td>P.201-A1</td><td>Giải tích 1</td></tr>
+      <tr><td>2</td><td>Trắc nghiệm</td><td>18/12/2026</td><td>13:00 - 14:00</td><td>Máy 45</td><td>Lập trình hướng đối tượng</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Lịch thi cá nhân (tab Lịch thi) — #tblLichThiCaNhan</h2>
+  <table id="tblLichThiCaNhan"><thead><tr><th>STT</th><th>Mã HP</th><th>Tên HP</th><th>Lần</th><th>Ngày thi</th><th>Thời gian</th><th>Hình thức</th><th>Phòng</th><th>SBD</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>ENG02</td><td>Tiếng Anh 2</td><td>1</td><td>20/12/2026</td><td>08:00 - 09:30</td><td>Vấn đáp</td><td>P.105-A3</td><td>SV0042</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Học phần không lịch chi tiết — #tblTKBKhongLichChiTiet</h2>
+  <table id="tblTKBKhongLichChiTiet"><thead><tr><th>Mã</th><th>Tên</th><th>Loại</th><th>Bắt đầu</th><th>Kết thúc</th><th>Ghi chú</th></tr></thead>
+    <tbody>
+      <tr><td>PRJ01</td><td>Đồ án tốt nghiệp</td><td>ĐỒ ÁN</td><td>01/09/2026</td><td>30/06/2027</td><td>GVHD: TS. X</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+
+function mutateSchedule() {
+    const t = document.querySelector("#tk1 .task-date");
+    t.textContent = "07:00 - 10:00";
+    const d = document.querySelector("#tk1 .task-description");
+    d.textContent = "Nhóm: 01\nP.999-DOI\nGV: Nguyễn Văn A\n👍 thumbs-up";
+    console.log("[MOCK] Đã đổi lịch Giải tích 1 — auto-check sẽ báo sau ~0.8s.");
+}
+</script>
+
+  
+  <script>
+
+window.PKA_SYNC_URL = location.origin + "/sync.html";
+
+window.PKA_APP_URL = location.origin + "/app.html";
+</script>
+  
+  <script src="../phenikaa-core.js"></script>
+  <script src="../userscript-wrapper.js"></script>
+</body>
+</html>

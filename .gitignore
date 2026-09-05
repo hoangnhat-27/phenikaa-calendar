@@ -1,0 +1,4 @@
+# Bản build tự sinh (GitHub Actions tạo lại khi deploy)
+/dist/
+node_modules/
+docs/.core.tmp.js

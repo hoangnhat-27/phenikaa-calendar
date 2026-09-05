@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Thời khóa biểu Phenikaa</title>
+<style>
+  :root{--bg:#f1f5f9;--ink:#0f172a;--muted:#475569;--navy:#1e3a8a}
+  html[data-pka-theme="dark"]{--bg:#0b1220;--ink:#e5edf7;--muted:#94a3b8}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
+  #bar{background:var(--navy);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;
+    padding-top:calc(10px + env(safe-area-inset-top))}
+  #bar b{font-size:15px}
+  #bar .upd{margin-left:auto;font-size:11.5px;opacity:.85}
+  #bar #themeBtn{background:rgba(255,255,255,.18);border:none;color:#fff;font-size:15px;cursor:pointer;padding:5px 10px;border-radius:8px}
+  #app{flex:1;min-height:0;display:flex;flex-direction:column}
+  #empty{margin:auto;max-width:340px;text-align:center;padding:24px;color:var(--muted);font-size:14px;line-height:1.6}
+  #empty b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <div id="bar"><b>📆 Thời khóa biểu Phenikaa</b><span class="upd" id="upd"></span><button id="themeBtn" title="Chuyển sáng/tối">🌙</button></div>
+  <div id="app">
+    <div id="empty">
+      <p>📭 <b>Chưa có dữ liệu lịch trên thiết bị này.</b></p>
+      <p>Mở cổng QLDT (đã đăng nhập) → trang <b>Lịch học</b> → chạy công cụ Phenikaa → bấm
+      <b>💾 Lưu offline</b>. Lịch sẽ được lưu vào đây để xem <b>không cần mạng</b>.</p>
+      <p class="upd">Sau đó dùng menu trình duyệt → <b>“Thêm vào màn hình chính”</b> để mở nhanh như một app.</p>
+    </div>
+  </div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="phenikaa-config.js?v=7"></script>
+<script src="phenikaa-core.js?v=7"></script>
+<script>
+
+(function() {
+    "use strict";
+    const P = window.PKACAL;
+    const KEY = "pka:schedule";
+    const UKEY = "pka:schedule:updated";
+    let CLIENT_ID = window.PKA_GOOGLE_CLIENT_ID || "PUT-YOUR-CLIENT-ID.apps.googleusercontent.com";
+    const qp = new URLSearchParams(location.search);
+    if (qp.get("client_id")) CLIENT_ID = qp.get("client_id");
+    const GOOGLE_OK = !CLIENT_ID.includes("PUT-YOUR-CLIENT-ID");
+    const SCOPE = "https://www.googleapis.com/auth/calendar.events";
+    const IMPORT_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events/import";
+    let tokenClient = null;
+    async function importAll(token, events, setStatus) {
+        const rs = events.map(P.toGoogleEvent);
+        let done = 0;
+        let ok = 0;
+        let err = 0;
+        let i = 0;
+        async function worker() {
+            while (i < rs.length) {
+                const r = rs[i++];
+                try {
+                    const res = await fetch(IMPORT_URL, {
+                        method: "POST",
+                        headers: {
+                            Authorization: "Bearer " + token,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(r)
+                    });
+                    if (!res.ok) throw new Error(res.status + " " + (await res.text()).slice(0, 120));
+                    ok++;
+                } catch (e) {
+                    err++;
+                }
+                done++;
+                setStatus("Đang đồng bộ… " + done + "/" + rs.length + " (OK " + ok + (err ? ", lỗi " + err : "") + ")");
+            }
+        }
+        const ws = [];
+        for (let w = 0; w < Math.min(4, rs.length); w++) ws.push(worker());
+        await Promise.all(ws);
+        setStatus("✅ Xong: " + ok + " sự kiện vào Google Calendar" + (err ? ", " + err + " lỗi." : "."));
+    }
+    window.PKA_ON_GOOGLE = function(events, setStatus) {
+        setStatus = setStatus || function() {};
+        if (!GOOGLE_OK) {
+            setStatus("Chưa cấu hình Google Client ID (sửa phenikaa-config.js). Có thể dùng ⬇️ Tải .ics.");
+            return;
+        }
+        if (!window.google || !google.accounts || !google.accounts.oauth2) {
+            setStatus("Chưa nạp được Google Identity Services (mạng bị chặn?).");
+            return;
+        }
+        if (!tokenClient) {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPE,
+                callback: function(resp) {
+                    if (resp && resp.access_token) importAll(resp.access_token, events, setStatus); else setStatus("Không lấy được quyền Google.");
+                }
+            });
+        }
+        setStatus("Đang mở đăng nhập Google…");
+        tokenClient.requestAccessToken({
+            prompt: ""
+        });
+    };
+    P.applyTheme();
+    const themeBtn = document.getElementById("themeBtn");
+    function refreshThemeIcon() {
+        themeBtn.textContent = P.currentTheme() === "dark" ? "☀️" : "🌙";
+    }
+    refreshThemeIcon();
+    themeBtn.addEventListener("click", function() {
+        P.toggleTheme();
+        refreshThemeIcon();
+    });
+    function load() {
+        try {
+            return JSON.parse(localStorage.getItem(KEY) || "[]");
+        } catch (e) {
+            return [];
+        }
+    }
+    function save(ev) {
+        try {
+            localStorage.setItem(KEY, JSON.stringify(ev));
+            localStorage.setItem(UKEY, (new Date).toISOString());
+        } catch (error_) {}
+    }
+    function fmtUpd() {
+        let t = null;
+        try {
+            t = localStorage.getItem(UKEY);
+        } catch (error_) {}
+        if (!t) return "";
+        const d = new Date(t);
+        return "Cập nhật: " + d.toLocaleDateString("vi-VN") + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+    }
+    function show(ev) {
+        const host = document.getElementById("app");
+        if (!ev.length) return;
+        host.innerHTML = "";
+        P.mountViewer(host, ev);
+        document.getElementById("upd").textContent = fmtUpd();
+    }
+    let gotData = false;
+    function setEmpty(html) { document.getElementById("empty").innerHTML = html; }
+    function setData(ev) {
+        if (ev && ev.length) {
+            gotData = true;
+            save(ev);
+            show(ev);
+        }
+    }
+    window.addEventListener("message", function(e) {
+        if (window.opener && e.source !== window.opener) return;
+        const d = e.data;
+        if (d && d.type === "pka-events" && Array.isArray(d.events)) {
+            try {
+                e.source.postMessage("pka-ack", e.origin || "*");
+            } catch (error_) {}
+            setData(d.events);
+        }
+    });
+    try {
+        if (window.opener) window.opener.postMessage("pka-ready", "*");
+    } catch (error_) {}
+    (function() {
+        const m = /[#&]e=([^&]+)/.exec(location.hash);
+        if (m) {
+            try {
+                setData(JSON.parse(P.b64urlDecode(m[1])));
+                history.replaceState(null, "", location.pathname + location.search);
+            } catch (error_) {}
+        }
+    })();
+    if (!gotData) {
+        const saved = load();
+        const offlineOpen = location.hash.includes("offline") || !window.opener;
+        if (saved.length) {
+            show(saved);
+        } else if (offlineOpen) {
+            setEmpty("<p>📭 <b>Chưa có lịch trên thiết bị này.</b></p>" +
+                "<p>Ở tab QLDT: vào <b>Cổng sinh viên → trang Lịch học</b> (đã đăng nhập), rồi bấm " +
+                "<b>📆 Xem thời khóa biểu</b>. Lịch sẽ hiện ở đây và lưu offline.</p>");
+        } else {
+            setEmpty("<p>⏳ <b>Đang nhận thời khóa biểu từ QLDT…</b></p>" +
+                "<p>Giữ <b>tab QLDT</b> mở đến khi quét xong (vài giây).</p>");
+            setTimeout(function () {
+                if (!gotData) setEmpty("<p>⚠️ <b>Chưa nhận được dữ liệu.</b></p>" +
+                    "<p>Hãy chắc chắn tab QLDT đang ở <b>trang Lịch học</b> (không phải trang chủ), rồi bấm " +
+                    "<b>📆 Xem thời khóa biểu</b> lại. Giữ cả 2 tab mở khi quét.</p>");
+            }, 60000);
+        }
+    }
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function() {
+            navigator.serviceWorker.register("sw.js").catch(function() {});
+        });
+    }
+})();
+</script>
+</body>
+</html>
