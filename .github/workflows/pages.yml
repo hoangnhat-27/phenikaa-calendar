@@ -1,8 +1,5 @@
 name: Deploy to GitHub Pages (minified)
 
-# Mỗi lần push lên main: build bản đã MINIFY (dist/) rồi deploy lên GitHub Pages.
-# Cần bật: Settings → Pages → Build and deployment → Source = "GitHub Actions".
-
 on:
   push:
     branches: [main]
