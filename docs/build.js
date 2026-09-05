@@ -57,7 +57,7 @@ if (process.argv.includes("--dist")) {
             console.warn("  (chép nguyên):", f);
         }
     });
-    [ "phenikaa-calendar.user.js", "icon.svg" ].forEach(function(f) {
+    [ "phenikaa-calendar.user.js", "icon.svg", "icon-180.png", "icon-512.png", "sitemap.xml" ].forEach(function(f) {
         fs.copyFileSync(src(f), out(f));
     });
     fs.writeFileSync(out("manifest.webmanifest"), JSON.stringify(JSON.parse(fs.readFileSync(src("manifest.webmanifest"), "utf8"))));

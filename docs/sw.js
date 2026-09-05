@@ -1,6 +1,6 @@
-const CACHE = "pka-shell-v8";
+const CACHE = "pka-shell-v9";
 
-const SHELL = [ "app.html", "phenikaa-core.js?v=7", "phenikaa-config.js?v=7", "manifest.webmanifest", "icon.svg" ];
+const SHELL = [ "app.html", "phenikaa-core.js?v=7", "phenikaa-config.js?v=7", "manifest.webmanifest", "icon.svg", "icon-180.png" ];
 
 self.addEventListener("install", function(e) {
     e.waitUntil(caches.open(CACHE).then(function(c) {

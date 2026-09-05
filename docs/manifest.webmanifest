@@ -1,7 +1,15 @@
 {
+  "id": "/phenikaa-calendar/",
   "name": "Thời khóa biểu Phenikaa",
   "short_name": "TKB Phenikaa",
   "description": "Xem thời khóa biểu & lịch thi Phenikaa offline.",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": [
+    "education",
+    "productivity",
+    "utilities"
+  ],
   "start_url": "app.html",
   "scope": "./",
   "display": "standalone",
@@ -9,6 +17,29 @@
   "background_color": "#f1f5f9",
   "theme_color": "#1e3a8a",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }
